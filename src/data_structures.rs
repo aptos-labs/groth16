@@ -169,4 +169,8 @@ pub struct ProvingKeyWithTrapdoor<E: Pairing> {
     pub delta: E::ScalarField,
     /// Trapdoor gamma 
     pub gamma: E::ScalarField,
+    /// Generator for G1
+    pub g1: E::G1Affine,
+    /// Generator for G2
+    pub g2: E::G2Affine,
 }

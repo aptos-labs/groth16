@@ -102,35 +102,22 @@ impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
         b: E::ScalarField,
         input_assignment: &[E::ScalarField],
     ) -> R1CSResult<Proof<E>> {
-        /*let input_assignment = input_assignment
-            .iter()
-            .map(|s| s.into_bigint())
-            .collect::<Vec<_>>();*/
-
-        //let h_input_acc = E::G1::msm_bigint(&pk.h_query, &input_assignment);
-
         let public_inputs = input_assignment;
-        println!("prover public inputs: {:?}", public_inputs);
         let mut g_ic = pk.vk.gamma_abc_g1[0].into_group();
         for (i, b) in public_inputs.iter().zip(pk.vk.gamma_abc_g1.iter().skip(1)) {
-            let i_gamma = *i * pk.gamma;
             g_ic.add_assign(&b.mul_bigint(i.into_bigint()));
         }
         g_ic = g_ic * pk.gamma;
-        println!("prover g_ic: {:?}", g_ic);
 
         let delta_inverse = pk.delta.inverse().unwrap();
         let ab = a * b;
         let alpha_beta = pk.alpha * pk.beta;
 
-        let g1 = E::G1Affine::default();
-        let g2 = E::G2Affine::default();
-
-        let g1_ab = g1 * ab;
-        let g1_alpha_beta = g1 * alpha_beta;
+        let g1_ab = pk.g1 * ab;
+        let g1_alpha_beta = pk.g1 * alpha_beta;
         
-        let g1_a = g1 * a;
-        let g2_b = g2 * b;
+        let g1_a = pk.g1 * a;
+        let g2_b = pk.g2 * b;
 
         let g1_c = (g1_ab - g1_alpha_beta - g_ic) * delta_inverse; 
 

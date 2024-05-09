@@ -86,6 +86,8 @@ impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
             beta,
             delta,
             gamma,
+            g1: g1_generator.into_affine(),
+            g2: g2_generator.into_affine(),
         })
     }
 
