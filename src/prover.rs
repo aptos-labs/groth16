@@ -1,4 +1,4 @@
-use crate::{r1cs_to_qap::R1CSToQAP, Groth16, Proof, ProvingKey, VerifyingKey};
+use crate::{r1cs_to_qap::R1CSToQAP, Groth16, Proof, ProvingKey, ProvingKeyWithTrapdoor, VerifyingKey};
 use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup, VariableBaseMSM};
 use ark_ff::{Field, PrimeField, UniformRand, Zero};
 use ark_poly::GeneralEvaluationDomain;
@@ -17,6 +17,12 @@ use ark_std::{
 use rayon::prelude::*;
 
 type D<F> = GeneralEvaluationDomain<F>;
+
+pub struct Trapdoor<E: Pairing> {
+    alpha: E::ScalarField,
+    beta: E::ScalarField,
+}
+
 
 impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
     /// Create a Groth16 proof using randomness `r` and `s` and
@@ -48,6 +54,91 @@ impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
         end_timer!(prover_time);
 
         Ok(proof)
+    }
+
+    /// Create a Groth16 proof that is zero-knowledge using the provided
+    /// R1CS-to-QAP reduction.
+    /// This method samples randomness for zero knowledges via `rng`.
+    #[inline]
+    pub fn create_random_proof_with_trapdoor<C>(
+        circuit: C,
+        pk: &ProvingKeyWithTrapdoor<E>,
+        rng: &mut impl Rng,
+    ) -> R1CSResult<Proof<E>>
+    where
+        C: ConstraintSynthesizer<E::ScalarField>,
+    {
+        let a = E::ScalarField::rand(rng);
+        let b = E::ScalarField::rand(rng);
+
+        let cs = ConstraintSystem::new_ref();
+
+        // Set the optimization goal
+        cs.set_optimization_goal(OptimizationGoal::Constraints);
+
+        // Synthesize the circuit.
+        let synthesis_time = start_timer!(|| "Constraint synthesis");
+        circuit.generate_constraints(cs.clone())?;
+        debug_assert!(cs.is_satisfied().unwrap());
+        end_timer!(synthesis_time);
+
+        let lc_time = start_timer!(|| "Inlining LCs");
+        cs.finalize();
+        end_timer!(lc_time);
+
+        let witness_map_time = start_timer!(|| "R1CS to QAP witness map");
+        end_timer!(witness_map_time);
+
+        let prover = cs.borrow().unwrap();
+
+        Self::create_proof_with_trapdoor(pk, a, b, &prover.instance_assignment[1..])
+    }
+
+
+    /// Creates proof using the trapdoor
+    pub fn create_proof_with_trapdoor(
+        pk: &ProvingKeyWithTrapdoor<E>,
+        a: E::ScalarField,
+        b: E::ScalarField,
+        input_assignment: &[E::ScalarField],
+    ) -> R1CSResult<Proof<E>> {
+        /*let input_assignment = input_assignment
+            .iter()
+            .map(|s| s.into_bigint())
+            .collect::<Vec<_>>();*/
+
+        //let h_input_acc = E::G1::msm_bigint(&pk.h_query, &input_assignment);
+
+        let public_inputs = input_assignment;
+        println!("prover public inputs: {:?}", public_inputs);
+        let mut g_ic = pk.vk.gamma_abc_g1[0].into_group();
+        for (i, b) in public_inputs.iter().zip(pk.vk.gamma_abc_g1.iter().skip(1)) {
+            let i_gamma = *i * pk.gamma;
+            g_ic.add_assign(&b.mul_bigint(i.into_bigint()));
+        }
+        g_ic = g_ic * pk.gamma;
+        println!("prover g_ic: {:?}", g_ic);
+
+        let delta_inverse = pk.delta.inverse().unwrap();
+        let ab = a * b;
+        let alpha_beta = pk.alpha * pk.beta;
+
+        let g1 = E::G1Affine::default();
+        let g2 = E::G2Affine::default();
+
+        let g1_ab = g1 * ab;
+        let g1_alpha_beta = g1 * alpha_beta;
+        
+        let g1_a = g1 * a;
+        let g2_b = g2 * b;
+
+        let g1_c = (g1_ab - g1_alpha_beta - g_ic) * delta_inverse; 
+
+        Ok(Proof {
+            a: g1_a.into_affine(),
+            b: g2_b.into_affine(),
+            c: g1_c.into_affine(),
+        })
     }
 
     #[inline]

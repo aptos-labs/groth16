@@ -26,14 +26,17 @@ impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
         pvk: &PreparedVerifyingKey<E>,
         public_inputs: &[E::ScalarField],
     ) -> R1CSResult<E::G1> {
+        println!("prepare inputs");
         if (public_inputs.len() + 1) != pvk.vk.gamma_abc_g1.len() {
             return Err(SynthesisError::MalformedVerifyingKey);
         }
+        println!("vk not malformed");
 
         let mut g_ic = pvk.vk.gamma_abc_g1[0].into_group();
         for (i, b) in public_inputs.iter().zip(pvk.vk.gamma_abc_g1.iter().skip(1)) {
             g_ic.add_assign(&b.mul_bigint(i.into_bigint()));
         }
+        println!("verifier g_ic: {:?}", g_ic);
 
         Ok(g_ic)
     }
@@ -46,6 +49,12 @@ impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
         proof: &Proof<E>,
         prepared_inputs: &E::G1,
     ) -> R1CSResult<bool> {
+        println!("verify proof.a: {:?}", proof.a);
+        println!("verify prepared inputs: {:?}", prepared_inputs);
+        println!("verify proof.c: {:?}", proof.c);
+        println!("verify proof.b: {:?}", proof.b);
+        println!("verify gamma_g2_neg_pc: {:?}", pvk.gamma_g2_neg_pc);
+        println!("verify delta_g2_neg_pc: {:?}", pvk.delta_g2_neg_pc);
         let qap = E::multi_miller_loop(
             [
                 <E::G1Affine as Into<E::G1Prepared>>::into(proof.a),
@@ -61,6 +70,7 @@ impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
 
         let test = E::final_exponentiation(qap).ok_or(SynthesisError::UnexpectedIdentity)?;
 
+        println!("verify alpha_g1_beta_g2: {:?}", pvk.alpha_g1_beta_g2);
         Ok(test.0 == pvk.alpha_g1_beta_g2)
     }
 
@@ -71,7 +81,9 @@ impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
         proof: &Proof<E>,
         public_inputs: &[E::ScalarField],
     ) -> R1CSResult<bool> {
+        println!("verify proof");
         let prepared_inputs = Self::prepare_inputs(pvk, public_inputs)?;
+        println!("prepared inputs");
         Self::verify_proof_with_prepared_inputs(pvk, proof, &prepared_inputs)
     }
 }

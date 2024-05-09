@@ -48,16 +48,16 @@ where
 {
     let mut rng = ark_std::rand::rngs::StdRng::seed_from_u64(test_rng().next_u64());
 
-    let (pk, vk) = Groth16::<E>::setup(MySillyCircuit { a: None, b: None }, &mut rng).unwrap();
+    let (pk, vk) = Groth16::<E>::circuit_specific_setup_with_trapdoor(MySillyCircuit { a: None, b: None }, &mut rng).unwrap();
     let pvk = prepare_verifying_key::<E>(&vk);
 
     for _ in 0..n_iters {
-        let a = E::ScalarField::rand(&mut rng);
-        let b = E::ScalarField::rand(&mut rng);
+        let a = E::ScalarField::from(3);//rand(&mut rng);
+        let b = E::ScalarField::from(4);//rand(&mut rng);
         let mut c = a;
         c *= b;
 
-        let proof = Groth16::<E>::prove(
+        let proof = Groth16::<E>::prove_with_trapdoor(
             &pk,
             MySillyCircuit {
                 a: Some(a),

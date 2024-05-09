@@ -1,4 +1,4 @@
-use crate::{r1cs_to_qap::R1CSToQAP, Groth16, ProvingKey, Vec, VerifyingKey};
+use crate::{r1cs_to_qap::R1CSToQAP, Groth16, ProvingKey, ProvingKeyWithTrapdoor, Vec, VerifyingKey};
 use ark_ec::{pairing::Pairing, scalar_mul::BatchMulPreprocessing, CurveGroup};
 use ark_ff::{Field, UniformRand, Zero};
 use ark_poly::{EvaluationDomain, GeneralEvaluationDomain};
@@ -41,6 +41,52 @@ impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
             g2_generator,
             rng,
         )
+    }
+
+/// Generates a random common reference string for
+    /// a circuit using the provided R1CS-to-QAP reduction.
+    #[inline]
+    pub fn generate_random_parameters_and_trapdoor_with_reduction<C>(
+        circuit: C,
+        rng: &mut impl Rng,
+    ) -> R1CSResult<ProvingKeyWithTrapdoor<E>>
+    where
+        C: ConstraintSynthesizer<E::ScalarField>,
+    {
+        let alpha = E::ScalarField::rand(rng);
+        let beta = E::ScalarField::rand(rng);
+        let gamma = E::ScalarField::rand(rng);
+        let delta = E::ScalarField::rand(rng);
+
+        let g1_generator = E::G1::rand(rng);
+        let g2_generator = E::G2::rand(rng);
+
+        let pk = Self::generate_parameters_with_qap(
+            circuit,
+            alpha,
+            beta,
+            gamma,
+            delta,
+            g1_generator,
+            g2_generator,
+            rng,
+        ).unwrap();
+
+        Ok(
+        ProvingKeyWithTrapdoor {
+            vk: pk.vk,
+            beta_g1: pk.beta_g1,
+            delta_g1: pk.delta_g1,
+            a_query: pk.a_query,
+            b_g1_query: pk.b_g1_query,
+            b_g2_query: pk.b_g2_query,
+            h_query: pk.h_query,
+            l_query: pk.l_query,
+            alpha,
+            beta,
+            delta,
+            gamma,
+        })
     }
 
     /// Create parameters for a circuit, given some toxic waste, R1CS to QAP calculator and group generators

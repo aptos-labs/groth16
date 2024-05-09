@@ -251,6 +251,7 @@ where
         proof: &Self::ProofVar,
     ) -> Result<Boolean<BasePrimeField<E>>, SynthesisError> {
         let circuit_pvk = circuit_pvk.clone();
+        println!("verifying");
 
         let g_ic = {
             let mut g_ic: P::G1Var = circuit_pvk.gamma_abc_g1[0].clone();
@@ -269,6 +270,7 @@ where
             assert!(input_len == circuit_pvk.gamma_abc_g1.len() && public_inputs.next().is_none());
             g_ic
         };
+        println!("verify g_ic: {:?}", g_ic);
 
         let test_exp = {
             let proof_a_prep = P::prepare_g1(&proof.a)?;

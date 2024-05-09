@@ -43,6 +43,7 @@ mod test;
 
 pub use self::data_structures::*;
 pub use self::verifier::*;
+use self::prover::Trapdoor;
 
 use ark_crypto_primitives::snark::*;
 use ark_ec::pairing::Pairing;
@@ -54,6 +55,26 @@ use r1cs_to_qap::{LibsnarkReduction, R1CSToQAP};
 /// The SNARK of [[Groth16]](https://eprint.iacr.org/2016/260.pdf).
 pub struct Groth16<E: Pairing, QAP: R1CSToQAP = LibsnarkReduction> {
     _p: PhantomData<(E, QAP)>,
+}
+
+impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
+    fn circuit_specific_setup_with_trapdoor<C: ConstraintSynthesizer<E::ScalarField>, R: RngCore>(
+        circuit: C,
+        rng: &mut R,
+    ) -> Result<(ProvingKeyWithTrapdoor<E>, VerifyingKey<E>), SynthesisError> {
+        let pk = Self::generate_random_parameters_and_trapdoor_with_reduction(circuit, rng)?;
+        let vk = pk.vk.clone();
+
+        Ok((pk, vk))
+    }
+
+    pub fn prove_with_trapdoor<C: ConstraintSynthesizer<E::ScalarField>, R: RngCore>(
+        pk: &ProvingKeyWithTrapdoor<E>,
+        circuit: C,
+        rng: &mut R,
+    ) -> Result<Proof<E>, SynthesisError> {
+        Self::create_random_proof_with_trapdoor(circuit, pk, rng)
+    }
 }
 
 impl<E: Pairing, QAP: R1CSToQAP> SNARK<E::ScalarField> for Groth16<E, QAP> {
@@ -92,6 +113,7 @@ impl<E: Pairing, QAP: R1CSToQAP> SNARK<E::ScalarField> for Groth16<E, QAP> {
         x: &[E::ScalarField],
         proof: &Self::Proof,
     ) -> Result<bool, Self::Error> {
+        println!("verify with processed vk");
         Ok(Self::verify_proof(&circuit_pvk, proof, &x)?)
     }
 }
