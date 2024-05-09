@@ -74,14 +74,7 @@ impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
 
         Ok(
         ProvingKeyWithTrapdoor {
-            vk: pk.vk,
-            beta_g1: pk.beta_g1,
-            delta_g1: pk.delta_g1,
-            a_query: pk.a_query,
-            b_g1_query: pk.b_g1_query,
-            b_g2_query: pk.b_g2_query,
-            h_query: pk.h_query,
-            l_query: pk.l_query,
+            pk,
             alpha,
             beta,
             delta,

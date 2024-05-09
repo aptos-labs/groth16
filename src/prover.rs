@@ -18,12 +18,6 @@ use rayon::prelude::*;
 
 type D<F> = GeneralEvaluationDomain<F>;
 
-pub struct Trapdoor<E: Pairing> {
-    alpha: E::ScalarField,
-    beta: E::ScalarField,
-}
-
-
 impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
     /// Create a Groth16 proof using randomness `r` and `s` and
     /// the provided R1CS-to-QAP reduction, using the provided
@@ -103,8 +97,8 @@ impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
         input_assignment: &[E::ScalarField],
     ) -> R1CSResult<Proof<E>> {
         let public_inputs = input_assignment;
-        let mut g_ic = pk.vk.gamma_abc_g1[0].into_group();
-        for (i, b) in public_inputs.iter().zip(pk.vk.gamma_abc_g1.iter().skip(1)) {
+        let mut g_ic = pk.pk.vk.gamma_abc_g1[0].into_group();
+        for (i, b) in public_inputs.iter().zip(pk.pk.vk.gamma_abc_g1.iter().skip(1)) {
             g_ic.add_assign(&b.mul_bigint(i.into_bigint()));
         }
         g_ic = g_ic * pk.gamma;

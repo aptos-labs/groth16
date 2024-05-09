@@ -63,7 +63,7 @@ impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
         rng: &mut R,
     ) -> Result<(ProvingKeyWithTrapdoor<E>, VerifyingKey<E>), SynthesisError> {
         let pk = Self::generate_random_parameters_and_trapdoor_with_reduction(circuit, rng)?;
-        let vk = pk.vk.clone();
+        let vk = pk.pk.vk.clone();
 
         Ok((pk, vk))
     }

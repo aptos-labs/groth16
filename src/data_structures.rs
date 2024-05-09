@@ -145,22 +145,8 @@ pub struct ProvingKey<E: Pairing> {
 /// The prover key for for the Groth16 zkSNARK.
 #[derive(Clone, Debug, PartialEq, CanonicalSerialize, CanonicalDeserialize)]
 pub struct ProvingKeyWithTrapdoor<E: Pairing> {
-    /// The underlying verification key.
-    pub vk: VerifyingKey<E>,
-    /// The element `beta * G` in `E::G1`.
-    pub beta_g1: E::G1Affine,
-    /// The element `delta * G` in `E::G1`.
-    pub delta_g1: E::G1Affine,
-    /// The elements `a_i * G` in `E::G1`.
-    pub a_query: Vec<E::G1Affine>,
-    /// The elements `b_i * G` in `E::G1`.
-    pub b_g1_query: Vec<E::G1Affine>,
-    /// The elements `b_i * H` in `E::G2`.
-    pub b_g2_query: Vec<E::G2Affine>,
-    /// The elements `h_i * G` in `E::G1`.
-    pub h_query: Vec<E::G1Affine>,
-    /// The elements `l_i * G` in `E::G1`.
-    pub l_query: Vec<E::G1Affine>,
+    /// The underlying proving key
+    pub pk: ProvingKey<E>,
     /// Trapdoor alpha
     pub alpha: E::ScalarField,
     /// Trapdoor beta
